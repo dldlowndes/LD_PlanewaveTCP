@@ -19,18 +19,18 @@ class PlanewaveTCP:
         """
         self.my_Socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         self.my_Socket.connect((ip_Addr, tcp_Port))
-        
+
         ## I think this is useful in reducing latency
         ## TODO: Test if this is useful!
         self.my_Socket.setblocking(False)
-        
+
     def __SendMsg(self, command, args=None):
-        """ 
+        """
         Send a message to the PWI software to do something.
         Tries to handle args given as strings or numbers
         """
         message = command + "\n"
-        
+
         ## Handle as many different formats of args as possible.
         ## TODO: Numpy array?
         if args is not None:
@@ -41,15 +41,15 @@ class PlanewaveTCP:
             else:
                 ## It's either a single int/float or something that will crash this
                 args = str(args)
-                
+
             ## Construct entire command message.
             message += args + "\n"
         else:
             ## There are no arguments.
             pass
-            
+
         self.my_Socket.sendall(message.encode("ascii"))
-    
+
     def __RecvMsg(self):
         """
         Receive a one line long response from the PWI software.
@@ -63,20 +63,20 @@ class PlanewaveTCP:
         while not response.endswith("\n"):
             response += self.my_Socket.recv(1).decode("UTF-8")
         return response
-    
+
     def SocketIsReadable(self):
         """
         Check if there is anything waiting on the socket.
         """
         return len(select.select([self.my_Socket], [], [self.my_Socket], 2)[0]) > 0
-    
+
     def Close(self):
         """
         Close the TCP socket (I assume on the host?)
         No response expected.
         """
         self.__SendMsg("close")
-        
+
     def GetStatus(self):
         """
         Ask for the status. The response is many lines so the
@@ -95,7 +95,7 @@ class PlanewaveTCP:
             else:
                 response += data.decode("UTF-8")
         return response
-        
+
     def Goto(self, ra_Apparent, dec_Apparent):
         """
         Begin slewing to specified RA/Dec
@@ -108,7 +108,7 @@ class PlanewaveTCP:
         assert (type(dec_Apparent) == float)
         self.__SendMsg("gotoradecapp", [ra_Apparent, dec_Apparent])
         return self.__RecvMsg()
-    
+
     def TLE(self, tle_Set):
         """
         Begin tracking a satellite described by the
@@ -121,7 +121,7 @@ class PlanewaveTCP:
         assert len(tle_Set) == 3
         self.__SendMsg("tle", tle_Set)
         return self.__RecvMsg()
-    
+
     def Track(self):
         """
         Begin sidereal tracking at the current mount
@@ -130,7 +130,7 @@ class PlanewaveTCP:
         """
         self.__SendMsg("track")
         return self.__RecvMsg()
-    
+
     def Stop(self):
         """
         Stop all motion on the mount.
@@ -138,7 +138,7 @@ class PlanewaveTCP:
         """
         self.__SendMsg("stop")
         return self.__RecvMsg()
-    
+
     def SetTimeOffset(self, offset_Seconds):
         """
         Apply a time offset to the target coordinate
@@ -148,7 +148,7 @@ class PlanewaveTCP:
         ## TODO: Save offset as a member variable so it can be queried later.
         self.__SendMsg("settimeoffset", offset_Seconds)
         return self.__RecvMsg()
-    
+
     def SetRaDecOffset(self, ra_Offset, dec_Offset):
         """
         Apply the specified RA and Dec offset to the
@@ -158,7 +158,7 @@ class PlanewaveTCP:
         ## TODO: Save offset as a member variable so it can be queried later.
         self.__SendMsg("radecoffset", [ra_Offset, dec_Offset])
         return self.__RecvMsg()
-    
+
     def PulseGuide(self, direction, duration_ms):
         """
         Mimic the behavior of the ASCOM
@@ -167,24 +167,25 @@ class PlanewaveTCP:
         """
         self.__SendMsg("pulseguide", [direction, duration_ms])
         return self.__RecvMsg()
-    
-    
+
+
 if __name__ == "__main__":
     my_PW = PlanewaveTCP("127.0.0.1", 8877)
 
     print(my_PW.GetStatus())
-    
+
     print(my_PW.Goto(5.0, 5.0))
     time.sleep(1)
-    
+
     print(my_PW.Stop())
     time.sleep(1)
-    
+
     print(my_PW.Track())
     time.sleep(1)
-    
+
     print(my_PW.Stop())
     time.sleep(1)
-    
+
     print(my_PW.Close())
     time.sleep(1)
+
