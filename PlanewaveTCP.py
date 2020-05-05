@@ -109,7 +109,7 @@ class PlanewaveTCP:
         self.__SendMsg("gotoradecapp", [ra_Apparent, dec_Apparent])
         return self.__RecvMsg()
 
-    def TLE(self, tle_Set):
+    def TLE(self, sat_Name, line_1, line_2):
         """
         Begin tracking a satellite described by the
         specified TLE. The first line is the satellite
@@ -117,8 +117,8 @@ class PlanewaveTCP:
         orbital elements
         Expected response: OK|ERROR
         """
-        raise NotImplementedError("yeah, I don't understand TLEs yet")
-        assert len(tle_Set) == 3
+        tle_Set = [sat_Name, line_1, line_2]
+        assert all([type(x) == str for x in tle_Set])
         self.__SendMsg("tle", tle_Set)
         return self.__RecvMsg()
 
