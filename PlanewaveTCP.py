@@ -13,7 +13,7 @@ import socket
 import time
 
 class PlanewaveTCP:
-    def __init__(self, ip_Addr="127.0.0.1", tcp_Port=8877):
+    def __init__(self, ip_Addr="127.0.0.1", tcp_Port=8220):
         """
         Set up the TCP connection.
         """
@@ -23,6 +23,7 @@ class PlanewaveTCP:
         ## I think this is useful in reducing latency
         ## TODO: Test if this is useful!
         self.my_Socket.setblocking(False)
+        self.timeout = 5 #seconds
 
     def __SendMsg(self, command, args=None):
         """
@@ -47,8 +48,9 @@ class PlanewaveTCP:
         else:
             ## There are no arguments.
             pass
-
-        self.my_Socket.sendall(message.encode("ascii"))
+        my_Message = message.encode("ascii")
+        print(my_Message)
+        self.my_Socket.sendall(my_Message)
 
     def __RecvMsg(self):
         """
@@ -56,10 +58,15 @@ class PlanewaveTCP:
         """
         ## TODO: figure out timeout in here.
         response = ""
+        timer = 0
         while not self.SocketIsReadable():
             ## If there's nothing at the socket now. Wait until
             ##there is
-            pass
+            sleep(0.1)
+            timer += 0.1
+            print("check")
+            if timer > self.timeout:
+                break
         while not response.endswith("\n"):
             response += self.my_Socket.recv(1).decode("UTF-8")
         return response
@@ -170,7 +177,7 @@ class PlanewaveTCP:
 
 
 if __name__ == "__main__":
-    my_PW = PlanewaveTCP("127.0.0.1", 8877)
+    my_PW = PlanewaveTCP("127.0.0.1", 8220)
 
     print(my_PW.GetStatus())
 
