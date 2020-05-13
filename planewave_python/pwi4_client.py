@@ -63,9 +63,9 @@ class PWI4:
 
         ra: Offset the target Right Ascension coordinate
         dec: Offset the target Declination coordinate
-        axis0: Offset the mount's primary axis position 
+        axis0: Offset the mount's primary axis position
                (roughly Azimuth on an Alt-Az mount, or RA on In equatorial mount)
-        axis1: Offset the mount's secondary axis position 
+        axis1: Offset the mount's secondary axis position
                (roughly Altitude on an Alt-Az mount, or Dec on an equatorial mount)
         path: Offset along the direction of travel for a moving target
         transverse: Offset perpendicular to the direction of travel for a moving target
@@ -127,7 +127,7 @@ class PWI4:
 
     def rotator_disable(self):
         return self.request_with_status("/rotator/disable")
-        
+
     def rotator_goto_mech(self, target_degs):
         return self.request_with_status("/rotator/goto_mech", degs=target_degs)
 
@@ -152,7 +152,7 @@ class PWI4:
         at the current telescope position
         """
         return self.request("/virtualcamera/take_image")
-    
+
     def virtualcamera_take_image_and_save(self, filename):
         """
         Request a fake FITS image from PWI4.
@@ -180,7 +180,7 @@ class PWI4:
         Useful for testing how the library will respond.
         """
         return self.request_with_status("/internal/crash")
-    
+
     def test_invalid_parameters(self):
         """
         Try making a request with intentionally missing parameters.
@@ -196,7 +196,7 @@ class PWI4:
     def request_with_status(self, command, **kwargs):
         response_text = self.request(command, **kwargs)
         return self.parse_status(response_text)
-    
+
     ### Status parsing utilities ################################
 
     def status_text_to_dict(self, response):
@@ -213,23 +213,23 @@ class PWI4:
         response_dict = {}
 
         lines = response.split("\n")
-        
+
         for line in lines:
             fields = line.split("=", 1)
             if len(fields) == 2:
                 name = fields[0]
                 value = fields[1]
                 response_dict[name] = value
-        
+
         return response_dict
 
     def parse_status(self, response_text):
         response_dict = self.status_text_to_dict(response_text)
         return PWI4Status(response_dict)
-    
 
-    
-class Section(object): 
+
+
+class Section(object):
     """
     Simple object for collecting properties in PWI4Status
     """
@@ -264,14 +264,14 @@ class PWI4Status:
         self.mount.field_angle_here_degs = self.get_float("mount.field_angle_here_degs")
         self.mount.field_angle_at_target_degs = self.get_float("mount.field_angle_at_target_degs")
         self.mount.field_angle_rate_at_target_degs_per_sec = self.get_float("mount.field_angle_rate_at_target_degs_per_sec")
-        
+
         self.mount.axis0 = Section()
         self.mount.axis0.is_enabled = self.get_bool("mount.axis0.is_enabled")
         self.mount.axis0.rms_error_arcsec = self.get_bool("mount.axis0.rms_error_arcsec")
         self.mount.axis0.dist_to_target_arcsec = self.get_float("mount.axis0.dist_to_target_arcsec")
         self.mount.axis0.servo_error_arcsec = self.get_float("mount.axis0.servo_error_arcsec")
         self.mount.axis0.position_degs = self.get_float("mount.axis0.position_degs")
-        
+
         self.mount.axis1 = Section()
         self.mount.axis1.is_enabled = self.get_bool("mount.axis1.is_enabled")
         self.mount.axis1.rms_error_arcsec = self.get_bool("mount.axis1.rms_error_arcsec")
@@ -290,7 +290,7 @@ class PWI4Status:
         self.focuser.is_enabled = self.get_bool("focuser.is_enabled")
         self.focuser.position = self.get_float("focuser.position")
         self.focuser.is_moving = self.get_bool("focuser.is_moving")
-        
+
         self.rotator = Section()
         self.rotator.is_connected = self.get_bool("rotator.is_connected")
         self.rotator.is_enabled = self.get_bool("rotator.is_enabled")
@@ -310,7 +310,7 @@ class PWI4Status:
 
     def get_int(self, name):
         return int(self.raw[name])
-    
+
     def get_string(self, name):
         return self.raw[name]
 
@@ -375,7 +375,7 @@ class PWI4HttpCommunicator:
 
         Example:
           pwi_request("/mount/gotoradec2000", ra=10.123, dec="15 30 45")
-        
+
         will construct the appropriate URL and issue the request to the server.
 
         The server response payload will be returned, or an exception will be thrown
@@ -383,7 +383,7 @@ class PWI4HttpCommunicator:
         """
 
         # Construct the URL that we will request
-        url = self.make_url(path, **kwargs)
+        url = self.    (path, **kwargs)
 
         # Open a connection to the server, issue the request, and try to receive the response.
         # The server will return an HTTP Status Code as part of the response.
@@ -405,10 +405,10 @@ class PWI4HttpCommunicator:
                 error_message = error_message + ": " + error_details
             except:
                 pass # If that failed, we won't include any further details
-            
+
             raise Exception(error_message) # TODO: Consider a custom exception here
 
-            
+
         except Exception as e:
             # This will often be a urllib2.URLError to indicate that a connection
             # could not be made to the server, but we'll handle any exception here
