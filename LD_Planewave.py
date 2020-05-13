@@ -3,7 +3,7 @@ import requests
 # TODO:
 #   - Separate classes for "model", "focuser", "rotator" etc?
 #   - Handle errors gracefully
-#   - validate input
+#   - validate input arg values?
 
 class PWI_Device:
     def __init__(self, ip_Addr, port):
@@ -13,9 +13,9 @@ class PWI_Device:
         cmd_Url = "/".join([self.req_Url, *command])
 
         #todo: deal with failed
-        response = requests.get(cmd_Url, **kwargs)
-        return response
+        response = requests.get(cmd_Url, kwargs)
         #todo: parse response
+        return response
 
 class Planewave_Mount(PWI_Device):
     def __init__(self, ip_Addr="127.0.0.1", port="8220"):
@@ -28,10 +28,20 @@ class Planewave_Mount(PWI_Device):
         return self._SendMsg(["mount", "disconnect"])
 
     def Enable(self):
-        return self._SendMsg(["mount", "enable"], axis=axis_Number)
+        responses = []
+        for axis_Number in [0, 1]:
+            responses.append(
+                    self._SendMsg(["mount", "enable"], axis=axis_Number)
+                    )
+        return *responses
 
     def Disable(self):
-        return self._SendMsg(["mount", "disable"], axis=axis_Number)
+        responses = []
+        for axis_Number in [0, 1]:
+            responses.append(
+                    self._SendMsg(["mount", "disable"], axis=axis_Number)
+                    )
+        return *responses
 
     def Home(self):
         return self._SendMsg(["mount", "find_home"])
@@ -78,4 +88,6 @@ class Planewave_Mount(PWI_Device):
 
 if __name__ == "__main__":
     myMount = Planewave_Mount("http://192.168.1.170", "8220")
-    myMount.Connect()
+    response = myMount.Goto_RaDec_Apparent(0,0)
+    for line in response.iter_lines():
+        print(line)
