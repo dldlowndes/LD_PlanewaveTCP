@@ -1,5 +1,7 @@
 import requests
 
+import LD_PWI_Status
+
 # TODO:
 #   - Separate classes for "model", "focuser", "rotator" etc? (or just lump together?)
 #   - Handle errors gracefully
@@ -7,7 +9,7 @@ import requests
 #   - Some option to enable/disable single axes (should both axes be default though?)
 #   - Get some documentation about these functions (email sent, awaiting reply)
 
-class PWI_Device:
+class PWI_Device():
     """
     Base class for aspects of the Planewave telescope system that communicates
     via the PWI4 software (by GET requests to an HTTP server run by PWI4)
@@ -22,7 +24,7 @@ class PWI_Device:
         self.base_Url = ":".join([ip_Address, port])
 
         # Dictionary containing the status message of the device.
-        self._status = {}
+        self.status = LD_PWI_Status.PWI_Status()
 
     def _SendMsg(self, command, **kwargs):
         """
@@ -43,31 +45,13 @@ class PWI_Device:
 
         # Interpret response or complain it failed.
         if response.status_code == 200:
-            self.Parse_Response(response)
+            self.status.Update(response)
         else:
             print(f"Response code {response.status_code}")
             print(f"{response.reason}")
             print(f"Request was {response.url}")
 
-    def Parse_Response(self, response):
-        """
-        Dump the response into a flat dictionary. The keys are dot delimited
-        to separate into different subcomponents.
-        """
-
-        # Clear the dictionary (in case there's old data left over?)
-        self._status = {}
-        for line in response.iter_lines():
-            line = line.decode()
-            dotted_keys, value = line.split("=")
-            self._status[dotted_keys] = value
-
-    def Get_Status(self):
-        """
-        Return the last status of the mount
-        """
-        return self._status
-
+    
 class Planewave_Mount(PWI_Device):
     """
     Interface to the telescope mount controlled by the PWI4 software.
@@ -116,7 +100,7 @@ class Planewave_Mount(PWI_Device):
                       ra_hours=ra_Hours,
                       dec_degs=dec_Degrees)
 
-    def Goto_RaDec_J2000(self):
+    def Goto_RaDec_J2000(self, ra_Hours, dec_Degrees):
         self._SendMsg(["mount", "goto_ra_dec_j2000"],
                       ra_hours=ra_Hours,
                       dec_degs=dec_Degrees)
@@ -173,6 +157,7 @@ class Planewave_Mount(PWI_Device):
                       line1=tle_Lines[0],
                       line2=tle_Lines[1],
                       line3=tle_Lines[2])
+
 
 if __name__ == "__main__":
     myMount = Planewave_Mount("http://192.168.1.170", "8220")
