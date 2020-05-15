@@ -3,46 +3,40 @@ import requests
 import LD_PWI_Status
 
 # TODO:
-#   - Separate classes for "model", "focuser", "rotator" etc? (or just lump together?)
 #   - Handle errors gracefully
-#   - Break out the status into a class so it can have typed data and get/set methods
 #   - Some option to enable/disable single axes (should both axes be default though?)
 #   - Get some documentation about these functions (email sent, awaiting reply)
 
-class PWI_Device():
+
+class Planewave_Mount:
     """
-    Base class for aspects of the Planewave telescope system that communicates
-    via the PWI4 software (by GET requests to an HTTP server run by PWI4)
-
-    ip_Address is usually localhost (http://127.0.0.1) and must have the http
-    at the beginning.
-
-    port is defined in the software (mine says 8220)
+    Interface to the telescope mount controlled by the PWI4 software.
+    Currently only the mount is supported (ie not the focusser etc)
     """
 
-    def __init__(self, ip_Address, port):
-        self.base_Url = ":".join([ip_Address, port])
+    def __init__(self, ip_Address="http://127.0.0.1", port="8220"):
+        self.base_Url = f"{ip_Address}:{port}"
 
         # Dictionary containing the status message of the device.
         self.status = LD_PWI_Status.PWI_Status()
-
+    
     def _SendMsg(self, command, **kwargs):
         """
         Makes GET requests to the PWI4 server. The commands are to specific
         URLs (such as "127.0.0.1:8220/mount/enable" for commands that need no
         parameters or use the query string "?" to add parameters separated by
         "&") - this is all dealt with by the requests package.
-
+    
         Parameters are passed in as a dictionary to this function and passed
         straight to requests.get().
         """
-
+    
         # Make the URL for the command (not including any params)
         cmd_Url = "/".join([self.base_Url, *command])
-
+    
         # Make the GET request including the parameters (if present)
         response = requests.get(cmd_Url, kwargs)
-
+    
         # Interpret response or complain it failed.
         if response.status_code == 200:
             self.status.Update(response)
@@ -50,16 +44,6 @@ class PWI_Device():
             print(f"Response code {response.status_code}")
             print(f"{response.reason}")
             print(f"Request was {response.url}")
-
-    
-class Planewave_Mount(PWI_Device):
-    """
-    Interface to the telescope mount controlled by the PWI4 software.
-    Currently only the mount is supported (ie not the focusser etc)
-    """
-
-    def __init__(self, ip_Addr="http://127.0.0.1", port="8220"):
-        super().__init__(ip_Addr, port)
 
     def Connect(self):
         self._SendMsg(["mount", "connect"])
@@ -160,6 +144,6 @@ class Planewave_Mount(PWI_Device):
 
 
 if __name__ == "__main__":
-    myMount = Planewave_Mount("http://192.168.1.170", "8220")
+    myMount = Planewave_Mount("http://127.0.0.1", "8220")
     myMount.Connect()
-    myMount.Goto_RaDec_Apparent(10, 10)
+    print(myMount.status)

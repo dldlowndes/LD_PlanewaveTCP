@@ -1,21 +1,42 @@
 class PWI_Status:
+    """
+    Big class to hold all the statuses reported by PWI4
+    """
     def __init__(self):
-        self.version = ""
+        """
+        Make empty instances for all statuses.
+        """
+        
+        self._version = ""
         self.site = Site_Status()
         self.mount = Mount_Status()
         self.focuser = Focuser_Status()
         self.rotator = Rotator_Status()
         self.m3 = M3_Status()
         self.autofocus = AutoFocus_Status()
+
+    @property        
+    def version(self):
+        return self._version
+    
+    @version.setter
+    def version(self, value):
+        self._version = value
     
     def Update(self, response):
+        """
+        Take the response from the requests package, parse and set member
+        variables in this class.
+        """
         string_status = {}
         for line in response.iter_lines():
             line = line.decode()
             dotted_keys, value = line.split("=")
             string_status[dotted_keys] = value
+            print(line)
         
         self.version = string_status["pwi4.version"]
+        
         self.site.latitude = string_status["site.latitude_degs"]
         self.site.longitude = string_status["site.longitude_degs"]
         self.site.height = string_status["site.height_meters"]
@@ -76,16 +97,41 @@ class PWI_Status:
 
     def __str__(self):
         out_Values = [
-
+            f"Version: {self.version}",
+            f"----- Site status: -----",
+            str(self.site),
+            f"----- Mount status: -----",
+            str(self.mount),
+            f"----- Focuser status: -----",
+            str(self.focuser),
+            f"----- Rotator status: -----",
+            str(self.rotator),
+            f"----- M3 status: -----",
+            str(self.m3),
+            f"----- Autofocus status: -----",
+            str(self.autofocus)
             ]
         return "\n".join(out_Values)
 
 class Site_Status:
+    """
+    The status report relating to the site of the telescope
+    [latitude, longitude, height, local siderial time]
+    """
+    
     def __init__(self):
         self._latitude = 0.0
         self._longitude = 0.0
         self._height = 0
         self._lst = 0.0
+        
+    def __str__(self):
+        return "\n".join([
+            f"\tSite latitude = {self._latitude} degrees",
+            f"\tSite longitude = {self._longitude} degrees",
+            f"\tSite height = {self._height} metres",
+            f"\tSite local siderial time = {self._lst} hours"
+            ])
         
     @property
     def latitude(self):
@@ -121,6 +167,9 @@ class Site_Status:
     
     
 class Mount_Status:
+    """
+    The status report relating to the telescope mount itself
+    """
     def __init__(self):
         self._is_connected = False
         self._geometry = "Alt-Az"
@@ -149,6 +198,33 @@ class Mount_Status:
             "1": "Equatorial Fork",
             "2": "German Equatorial"
             }
+    
+    def __str__(self):
+        return "\n".join([
+            f"\tIs connected: {self._is_connected}",
+            f"\tGeometry: {self._geometry}",
+            f"\tRA (apparent) = {self._ra_apparent} hours",
+            f"\tDEC (apparent) = {self._dec_apparent} degrees",
+            f"\tRA (J2000) = {self._ra_j2000} hours",
+            f"\tDEC (J2000) = {self._dec_j2000} degrees",
+            f"\tTarget RA (apparent) = {self._target_ra_apparent} hours",
+            f"\tTarget DEC (apparent) = {self._target_dec_apparent} degrees",
+            f"\tAltitude = {self._altitude} degrees",
+            f"\tAzimuth = {self._azimuth} degrees",
+            f"\tSlewing?: {self._is_slewing}",
+            f"\tTracking?: {self._is_tracking}",
+            f"\tField angle here = {self._field_angle_here} degrees",
+            f"\tField angle at target = {self._field_angle_target} degrees",
+            f"\tField angle rate at target = {self._field_angle_rate_target} degrees/sec",
+            f"\tPath angle at target = {self._path_angle_target} degrees",
+            f"\tPath angle rate at target = {self._path_angle_rate_target} degrees/sec",
+            f"\tAxis0:",
+            str(self.axis0),
+            f"\tAxis1:",
+            str(self.axis1),
+            f"\tPointing model:",
+            str(self.model)
+            ])
         
     @property
     def is_connected(self):
@@ -255,45 +331,57 @@ class Mount_Status:
         self._field_angle_here = float(value)
                  
     @property
-    def _field_angle_target(self):
-        return self.__field_angle_target
+    def field_angle_target(self):
+        return self._field_angle_target
     
-    @_field_angle_target.setter
-    def _field_angle_target(self, value):
-        self.__field_angle_target = float(value)
+    @field_angle_target.setter
+    def field_angle_target(self, value):
+        self._field_angle_target = float(value)
                  
     @property
-    def _field_angle_rate_target(self):
-        return self.__field_angle_rate_target
+    def field_angle_rate_target(self):
+        return self._field_angle_rate_target
     
-    @_field_angle_rate_target.setter
-    def _field_angle_rate_target(self, value):
-        self.__field_angle_rate_target = float(value)
+    @field_angle_rate_target.setter
+    def field_angle_rate_target(self, value):
+        self._field_angle_rate_target = float(value)
                  
     @property
-    def _path_angle_target(self):
-        return self.__path_angle_target
+    def path_angle_target(self):
+        return self._path_angle_target
     
-    @_path_angle_target.setter
-    def _path_angle_target(self, value):
+    @path_angle_target.setter
+    def path_angle_target(self, value):
         self.__path_angle_target = float(value)
                  
     @property
-    def _path_angle_rate_target(self):
-        return self.__path_angle_rate_target
+    def path_angle_rate_target(self):
+        return self._path_angle_rate_target
     
-    @_path_angle_rate_target.setter
-    def _path_angle_rate_target(self, value):
-        self.__path_angle_rate_target = float(value)
+    @path_angle_rate_target.setter
+    def path_angle_rate_target(self, value):
+        self._path_angle_rate_target = float(value)
                   
         
 class Axis_Status:
+    """
+    Status of a specific axis of the telescope mount
+    """
     def __init__(self):
         self._is_enabled = False
         self._rms_error = 0.0
         self._dist_to_target = 0.0
         self._servo_error = 0.0
         self._position = 0.0
+    
+    def __str__(self):
+        return "\n".join([
+            f"\t\tEnabled?: {self._is_enabled}",
+            f"\t\tRMS Error =  {self._rms_error} arcsec",
+            f"\t\tDistance to target = {self._dist_to_target} arcsec",
+            f"\t\tServo error = {self._servo_error} arcsec",
+            f"\t\tPosition = {self._position} degrees"
+            ])
     
     @property
     def is_enabled(self):
@@ -336,11 +424,23 @@ class Axis_Status:
         self._position = float(value)
 
 class Model_Status:
+    """
+    Something to do with the pointing model of the mount
+    (can't find any documentation about this)
+    """
     def __init__(self):
         self._filename = ""
         self._n_points_total = 0
         self._n_points_enabled = 0
         self._rms_error = 0.0
+        
+    def __str__(self):
+        return "\n".join([
+            f"\t\tFilename: {self._filename}",
+            f"\t\tnum points total = {self._n_points_total}",
+            f"\t\tnum points enabled = {self._n_points_enabled}",
+            f"\t\tRMS error {self._rms_error} arcsec"
+            ])
 
     @property
     def filename(self):
@@ -376,11 +476,23 @@ class Model_Status:
 
 
 class Focuser_Status:
+    """
+    The status report relating to the telescope focusser
+    """
+    
     def __init__(self):
         self._is_connected = False
         self._is_enabled = False
         self._position = 0.0
         self._is_moving = False
+
+    def __str__(self):
+        return "\n".join([
+            f"\tConnected?: {self._is_connected}",
+            f"\tEnabled?: {self._is_enabled}",
+            f"\tPosition = {self._position}",
+            f"\tMoving?: {self._is_moving}"
+            ])
 
     @property
     def is_connected(self):
@@ -415,6 +527,10 @@ class Focuser_Status:
         self._is_moving = bool(value)
 
 class Rotator_Status:
+    """
+    The status report relating to the telescope rotator
+    """    
+    
     def __init__(self):
         self._is_connected = False
         self._is_enabled = False
@@ -422,6 +538,16 @@ class Rotator_Status:
         self._field_angle = 0.0
         self._is_moving = False
         self._is_slewing = False
+
+    def __str__(self):
+        return "\n".join([
+            f"\tConnected?: {self._is_connected}",
+            f"\tEnabled?: {self._is_enabled}",
+            f"\tMechanical position = {self._mech_position} degrees",
+            f"\tField angle = {self._field_angle} degrees",
+            f"\tMoving?: {self._is_moving}",
+            f"\tSlewing?: {self._is_slewing}",
+            ])
 
     @property
     def is_connected(self):
@@ -472,8 +598,17 @@ class Rotator_Status:
         self._is_slewing = bool(value)
         
 class M3_Status:
+    """
+    The status report relating to ... ?
+    """
+    
     def __init__(self):
         self._port = 0
+    
+    def __str__(self):
+        return "\n".join([
+            f"\tPort: {self._port}"
+            ])
     
     @property
     def port(self):
@@ -484,11 +619,23 @@ class M3_Status:
         self._port = int(value)
         
 class AutoFocus_Status:
+    """
+    The status report relating to the telescope autofocus
+    """
+    
     def __init__(self):
-        self.is_running = False
-        self.success = False
-        self.best_position = 0.0
-        self.tolerance = 0.0
+        self._is_running = False
+        self._success = False
+        self._best_position = 0.0
+        self._tolerance = 0.0
+    
+    def __str__(self):
+        return "\n".join([
+            f"\tRunning?: {self._is_running}",
+            f"\tSuccess?: {self._success}",
+            f"\tBest position = {self._best_position}",
+            f"\tTolerance = {self._tolerance}"
+            ])
     
     @property
     def is_running(self):
