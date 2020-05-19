@@ -73,7 +73,7 @@ class Planewave_Mount:
         """
         response = self._SendMsg(["status"])
 
-        return self._status
+        return self.status
 
     def Home(self):
         response = self._SendMsg(["mount", "find_home"])
