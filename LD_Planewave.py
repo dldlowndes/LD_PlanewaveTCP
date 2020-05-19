@@ -6,7 +6,7 @@ import LD_PWI_Status
 #   - Handle errors gracefully
 #   - Some option to enable/disable single axes (should both axes be default though?)
 #   - Get some documentation about these functions (email sent, awaiting reply)
-
+#   - Verify TLEs before sending?
 
 class Planewave_Mount:
     """
@@ -42,14 +42,16 @@ class Planewave_Mount:
             self.status.Update(response)
         else:
             print(f"Response code {response.status_code}")
-            print(f"{response.reason}")
+            print(f"{response.reason}: {response.content}")
             print(f"Request was {response.url}")
+            
+        return response
 
     def Connect(self):
-        self._SendMsg(["mount", "connect"])
+        response = self._SendMsg(["mount", "connect"])
 
     def Disconnect(self):
-        self._SendMsg(["mount", "disconnect"])
+        response = self._SendMsg(["mount", "disconnect"])
 
     def Enable(self):
         """
@@ -63,34 +65,34 @@ class Planewave_Mount:
         Disable both axes at once.
         """
         for axis_Number in [0, 1]:
-            self._SendMsg(["mount", "disable"], axis=axis_Number)
+            response = self._SendMsg(["mount", "disable"], axis=axis_Number)
 
     def Status(self):
         """
         Get the full status.
         """
-        self._SendMsg(["status"])
+        response = self._SendMsg(["status"])
 
         return self._status
 
     def Home(self):
-        self._SendMsg(["mount", "find_home"])
+        response = self._SendMsg(["mount", "find_home"])
 
     def Stop(self):
-        self._SendMsg(["mount", "stop"])
+        response = self._SendMsg(["mount", "stop"])
 
     def Goto_RaDec_Apparent(self, ra_Hours, dec_Degrees):
-        self._SendMsg(["mount", "goto_ra_dec_apparent"],
+        response = self._SendMsg(["mount", "goto_ra_dec_apparent"],
                       ra_hours=ra_Hours,
                       dec_degs=dec_Degrees)
 
     def Goto_RaDec_J2000(self, ra_Hours, dec_Degrees):
-        self._SendMsg(["mount", "goto_ra_dec_j2000"],
+        response = self._SendMsg(["mount", "goto_ra_dec_j2000"],
                       ra_hours=ra_Hours,
                       dec_degs=dec_Degrees)
 
     def Goto_AltAz(self, alt_Degrees, az_Degrees):
-        self._SendMsg(["mount", "goto_alt_az"],
+        response = self._SendMsg(["mount", "goto_alt_az"],
                       alt_degs=alt_Degrees,
                       az_degs=az_Degrees)
 
@@ -124,26 +126,37 @@ class Planewave_Mount:
         raise NotImplementedError
 
     def Park(self):
-        self._SendMsg(["mount", "park"])
+        response = self._SendMsg(["mount", "park"])
 
     def Park_Here(self):
-        self._SendMsg(["mount", "set_park_here"])
+        response = self._SendMsg(["mount", "set_park_here"])
 
     def Tracking_On(self):
-        self._SendMsg(["mount", "tracking_on"])
+        response = self._SendMsg(["mount", "tracking_on"])
 
     def Tracking_Off(self):
-        self._SendMsg(["mount", "tracking_off"])
+        response = self._SendMsg(["mount", "tracking_off"])
 
     def Follow_TLE(self, tle_Lines):
         assert len(tle_Lines) == 3 # todo: more validation of tles
-        self._SendMsg(["mount", "follow_tle"],
-                      line1=tle_Lines[0],
-                      line2=tle_Lines[1],
-                      line3=tle_Lines[2])
+        response = self._SendMsg(["mount", "follow_tle"],
+                      line0=tle_Lines[0],
+                      line1=tle_Lines[1],
+                      line2=tle_Lines[2]
+                      )
+        return response
 
 
 if __name__ == "__main__":
     myMount = Planewave_Mount("http://127.0.0.1", "8220")
     myMount.Connect()
     print(myMount.status)
+    
+    myMount.Tracking_On()
+    
+    print("Request TLE")
+    iss_TLE = ["ISS (ZARYA)",
+           "1 25544U 98067A   20140.34419374 -.00000374  00000-0  13653-5 0  9990",
+           "2 25544  51.6433 131.2277 0001338 330.3524 173.1622 15.49372617227549"
+           ]
+    r = myMount.Follow_TLE(iss_TLE)
