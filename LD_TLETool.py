@@ -1,6 +1,7 @@
 import requests
 
 # TODO: Make TLE class (instead of having separate methods for the way the TLE is returned, can return a TLE object and it has methods to return in different representations
+# TODO: Search for satellites which will be visible (soon, here)
 
 class TLE_List:
     """
