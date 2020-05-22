@@ -137,12 +137,31 @@ class Planewave_Mount:
     def Tracking_Off(self):
         response = self._SendMsg(["mount", "tracking_off"])
 
-    def Follow_TLE(self, tle_Lines):
-        assert len(tle_Lines) == 3 # todo: more validation of tles
+    def Follow_TLE(self, tle):
+        """
+        Instruct the mount to follow a TLE. Argument tle can either be:
+            str: a raw string of the whole TLE, separated by "\n" etc.
+            list: a list with a string for each line of the TLE.
+            dict: a dict with keys line0, line1, line2 holding strings for each line of TLE
+            My_TLE: An instance of my TLE class
+        """
+        
+        if isinstance(tle, str):
+            tle = tle.split("\n")
+        if isinstance(tle, list):
+            assert len(tle) == 3
+            tle_Payload = {
+                "line0": tle[0],
+                "line1": tle[1],
+                "line2": tle[2]
+                }
+        elif isinstance(tle, dict):
+            tle_Payload = tle
+        elif isinstance(tle, My_TLE):
+            tle_Payload = tle.Dict
+        
         response = self._SendMsg(["mount", "follow_tle"],
-                      line0=tle_Lines[0],
-                      line1=tle_Lines[1],
-                      line2=tle_Lines[2]
+                      **tle_Payload
                       )
         return response
 
