@@ -6,6 +6,7 @@ import astropy.time
 import astropy.units
 
 datetime_Now = astropy.time.Time.now()
+m_obstime = astropy.time.Time(datetime_Now, format="jd")
 
 tle_List = LD_TLETool.TLE_List("active.txt", False)
 my_tle_str = tle_List.Get_TLE_String(tle_List.Search_Keys("zarya"))
@@ -19,4 +20,9 @@ teme_v = astropy.coordinates.CartesianDifferential(v * (astropy.units.km / astro
 
 # see https://docs.astropy.org/en/latest/coordinates/satellites.html
 # but needs >=astropy4.1 (which anaconda hasn't caught up to yet)
-teme = astropy.coordinates.TEME(teme_p.with_differentials(teme_v), obstime = datetime_Now.jd)
+teme = astropy.coordinates.TEME(teme_p.with_differentials(teme_v), obstime = m_obstime)
+
+itrs = teme.transform_to(astropy.coordinates.ITRS(obstime=m_obstime))
+
+location = itrs.earth_location
+print(location.geodetic)
