@@ -60,6 +60,8 @@ class My_TLE:
     def String(self):
         return "\n".join(list(self.tle_Dict.values()))
     
+    def __getitem__(self, i):
+        return list(self.tle_Dict.values())[i]
 
 class TLE_List:
     """
