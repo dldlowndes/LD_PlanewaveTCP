@@ -1,71 +1,101 @@
+import logging
 import requests
+import sys
 
 import LD_PWI_Status
 
-# TODO:
-#   - Handle errors gracefully
-#   - Some option to enable/disable single axes (should both axes be default though?)
-#   - Get some documentation about these functions (email sent, awaiting reply)
-#   - Verify TLEs before sending?
+import LD_MyTLE
 
-class Planewave_Mount:
+log = logging.getLogger(__name__)
+url_Log = logging.getLogger("urllib3")
+url_Log.setLevel(logging.WARNING)
+
+class LD_Planewave:
     """
     Interface to the telescope mount controlled by the PWI4 software.
     Currently only the mount is supported (ie not the focusser etc)
     """
 
-    def __init__(self, ip_Address="http://127.0.0.1", port="8220"):
+    def __init__(self, ip_Address="", port=""):
+
+        if ip_Address != "":
+            log.debug(f"Connecting to {ip_Address}:{port}")
+            self.Connect_IP(ip_Address, port)
+        else:
+            log.warning("No IP address supplied (yet). Use Connect_IP(ip, port) later")
+
+    def Connect_IP(self, ip_Address="http://127.0.0.1", port="8220"):
         self.base_Url = f"{ip_Address}:{port}"
 
-        # Dictionary containing the status message of the device.
-        self.status = LD_PWI_Status.PWI_Status()
-    
+        # Container for the status messages of the device.
+        self.status = LD_PWI_Status.LD_PWI_Status()
+
     def _SendMsg(self, command, **kwargs):
         """
         Makes GET requests to the PWI4 server. The commands are to specific
         URLs (such as "127.0.0.1:8220/mount/enable" for commands that need no
         parameters or use the query string "?" to add parameters separated by
         "&") - this is all dealt with by the requests package.
-    
+
         Parameters are passed in as a dictionary to this function and passed
         straight to requests.get().
         """
-    
-        # Make the URL for the command (not including any params)
-        cmd_Url = "/".join([self.base_Url, *command])
-    
+
+        if isinstance(command, (list, tuple)):
+            # Make the URL for the command (not including any params)
+            cmd_Url = "/".join([self.base_Url, *command])
+        elif isinstance(command, str):
+            # If a string was passed, interpret it as a direct command.
+            cmd_Url = f"{self.base_Url}/{command}"
+            log.debug("Direct command {cmd_url}")
+        else:
+            cmd_Url = ""
+            log.warning("Don't know how to interpret {command} of type {type(command)}")
+
         # Make the GET request including the parameters (if present)
         response = requests.get(cmd_Url, kwargs)
-    
+
         # Interpret response or complain it failed.
         if response.status_code == 200:
             self.status.Update(response)
         else:
-            print(f"Response code {response.status_code}")
-            print(f"{response.reason}: {response.content}")
-            print(f"Request was {response.url}")
-            
+            log.warning(f"Response code {response.status_code}")
+            log.warning(f"{response.reason}: {response.content}")
+            log.warning(f"Request was {response.url}")
+
         return response
 
     def Connect(self):
+        """
+        Connect to the telescope hardware.
+        """
+        log.debug("Connect to telescope hardware")
         response = self._SendMsg(["mount", "connect"])
+        log.debug(f"Telescope says {response}")
+        return response
 
     def Disconnect(self):
+        """
+        Disconnect from the telescope hardware.
+        """
+        log.debug("Disconnect from telescope hardware")
         response = self._SendMsg(["mount", "disconnect"])
+        log.debug(f"Telescope says {response}")
+        return response
 
-    def Enable(self):
+    def Enable(self, axis):
         """
-        Enable both axes at once.
+        Enable chosen axis
         """
-        for axis_Number in [0, 1]:
-            self._SendMsg(["mount", "enable"], axis=axis_Number)
+        return self._SendMsg(["mount", "enable"], axis=axis)
 
-    def Disable(self):
+    def Disable(self, axis):
         """
-        Disable both axes at once.
+        Disable chosen axis
         """
-        for axis_Number in [0, 1]:
-            response = self._SendMsg(["mount", "disable"], axis=axis_Number)
+        response = self._SendMsg(["mount", "disable"], axis=axis)
+        log.debug(f"Telescope says {response}")
+        return response
 
     def Status(self):
         """
@@ -76,25 +106,40 @@ class Planewave_Mount:
         return self.status
 
     def Home(self):
+        log.debug("Home mount")
         response = self._SendMsg(["mount", "find_home"])
+        log.debug(f"Telescope says {response}")
+        return response
 
     def Stop(self):
+        log.debug("Stop mount")
         response = self._SendMsg(["mount", "stop"])
+        log.debug(f"Telescope says {response}")
+        return response
 
     def Goto_RaDec_Apparent(self, ra_Hours, dec_Degrees):
+        log.debug(f"Go do ra/dec (apparent) {ra_Hours}h, {dec_Degrees}deg")
         response = self._SendMsg(["mount", "goto_ra_dec_apparent"],
-                      ra_hours=ra_Hours,
-                      dec_degs=dec_Degrees)
+                                 ra_hours=ra_Hours,
+                                 dec_degs=dec_Degrees)
+        log.debug(f"Telescope says {response}")
+        return response
 
     def Goto_RaDec_J2000(self, ra_Hours, dec_Degrees):
+        log.debug(f"Go do ra/dec (J2000) {ra_Hours}h, {dec_Degrees}deg")
         response = self._SendMsg(["mount", "goto_ra_dec_j2000"],
-                      ra_hours=ra_Hours,
-                      dec_degs=dec_Degrees)
+                                 ra_hours=ra_Hours,
+                                 dec_degs=dec_Degrees)
+        log.debug(f"Telescope says {response}")
+        return response
 
     def Goto_AltAz(self, alt_Degrees, az_Degrees):
+        log.debug(f"Go do alt/az {alt_Degrees}deg alt, {az_Degrees}deg az")
         response = self._SendMsg(["mount", "goto_alt_az"],
-                      alt_degs=alt_Degrees,
-                      az_degs=az_Degrees)
+                                 alt_degs=alt_Degrees,
+                                 az_degs=az_Degrees)
+        log.debug(f"Telescope says {response}")
+        return response
 
     def Mount_Offset(self):
         """
@@ -126,16 +171,28 @@ class Planewave_Mount:
         raise NotImplementedError
 
     def Park(self):
+        log.debug("Park mount")
         response = self._SendMsg(["mount", "park"])
+        log.debug(f"Telescope says {response}")
+        return response
 
     def Park_Here(self):
+        log.debug("Park mount here")
         response = self._SendMsg(["mount", "set_park_here"])
+        log.debug(f"Telescope says {response}")
+        return response
 
     def Tracking_On(self):
+        log.debug("Mount track on")
         response = self._SendMsg(["mount", "tracking_on"])
+        log.debug(f"Telescope says {response}")
+        return response
 
     def Tracking_Off(self):
+        log.debug("Mount track off")
         response = self._SendMsg(["mount", "tracking_off"])
+        log.debug(f"Telescope says {response}")
+        return response
 
     def Follow_TLE(self, tle):
         """
@@ -145,7 +202,7 @@ class Planewave_Mount:
             dict: a dict with keys line0, line1, line2 holding strings for each line of TLE
             My_TLE: An instance of my TLE class
         """
-        
+
         if isinstance(tle, str):
             tle = tle.split("\n")
         if isinstance(tle, list):
@@ -157,25 +214,41 @@ class Planewave_Mount:
                 }
         elif isinstance(tle, dict):
             tle_Payload = tle
-        elif isinstance(tle, My_TLE):
+        elif isinstance(tle, LD_MyTLE.LD_MyTLE):
             tle_Payload = tle.Dict
-        
+
+        log.debug(f"Follow TLE named {tle_Payload['line0']}")
+
         response = self._SendMsg(["mount", "follow_tle"],
-                      **tle_Payload
-                      )
+                                 **tle_Payload
+                                 )
+        log.debug(f"Telescope says {response}")
         return response
+
+    def Raw_Command(self, raw_Str):
+        """
+        Allow (an advanced?) user to speficy some exact raw command to the
+        mount. (i.e.) a specific HTTP request and return the response.
+        """
+        
+        if isinstance(raw_Str, str):
+            response = self._SendMsg(raw_Str)
+            return response
+        else:
+            log.warning("Raw commands can only be strings")
 
 
 if __name__ == "__main__":
-    myMount = Planewave_Mount("http://127.0.0.1", "8220")
+    logging.basicConfig(stream=sys.stdout, level=logging.DEBUG)
+    myMount = LD_Planewave("http://127.0.0.1", "8220")
     myMount.Connect()
     print(myMount.status)
-    
+
     myMount.Tracking_On()
-    
+
     print("Request TLE")
     iss_TLE = ["ISS (ZARYA)",
-           "1 25544U 98067A   20140.34419374 -.00000374  00000-0  13653-5 0  9990",
-           "2 25544  51.6433 131.2277 0001338 330.3524 173.1622 15.49372617227549"
-           ]
+               "1 25544U 98067A   20140.34419374 -.00000374  00000-0  13653-5 0  9990",
+               "2 25544  51.6433 131.2277 0001338 330.3524 173.1622 15.49372617227549"
+               ]
     r = myMount.Follow_TLE(iss_TLE)
